@@ -31,16 +31,6 @@ if (isset($_GET['complete'])) {
 
     // Update status di database
     mysqli_query($koneksi, "UPDATE task SET status = '$new_status' WHERE id = '$id'");
-
-    // Notifikasi
-    if ($new_status == 1) {
-        echo "<script>alert('Task berhasil diselesaikan')</script>";
-    } else {
-        echo "<script>alert('Task dikembalikan ke status belum selesai')</script>";
-    }
-
-    // Refresh halaman
-    header("location: index.php");
 }
 
 
@@ -68,32 +58,23 @@ if (isset($_GET['id'])) {
 }
 
 if (isset($_POST['edit_task'])) {
-    $task_id = mysqli_real_escape_string($koneksi, $_POST['task_id']);
-    $task = mysqli_real_escape_string($koneksi, $_POST['task']);
-    $description = mysqli_real_escape_string($koneksi, $_POST['description']);
-    $priority = mysqli_real_escape_string($koneksi, $_POST['priority']);
+    $id = $_POST['task_id'];
+    $task = $_POST['task'];
+    $description = $_POST['description'];
+    $priority = $_POST['priority'];
     $due_date = mysqli_real_escape_string($koneksi, $_POST['due_date']);
 
-    if (!empty($task) && !empty($priority) && !empty($due_date)) {
-        $query = "UPDATE task SET task='$task', priority='$priority', due_date='$due_date', description='$description' 
-                  WHERE id='$task_id'";
-        $result = mysqli_query($koneksi, $query);
-
-        if ($result) {
-            echo "<script>
-                    alert('Task berhasil diperbarui');
-                    window.location.href='index.php';
-                  </script>";
+    if (!empty($id) && !empty($task) && !empty($priority) && !empty($due_date)) {
+        $query = "UPDATE task SET task = '$task', description = '$description', priority = '$priority', due_date = '$due_date' WHERE id = '$id'";
+        if (mysqli_query($koneksi, $query)) {
+            echo "<script>alert('Task berhasil diperbarui!'); window.location.href='index.php';</script>";
         } else {
-            echo "<script>alert('Gagal memperbarui task');</script>";
+            echo "<script>alert('Task gagal diperbarui!');</script>";
         }
     } else {
-        echo "<script>alert('Pastikan semua kolom terisi');</script>";
+        echo "<script>alert('Data tidak boleh kosong!');</script>";
     }
 }
-
-// Ambil parameter search dari URL
-$search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, $_GET['search']) : "";
 
 // Query dasar
 $query = "SELECT * FROM task WHERE 1";
@@ -103,15 +84,8 @@ if (!empty($search)) {
     $query .= " AND (id = '$search' OR task LIKE '%$search%')";
 }
 
-// Jalankan query
-$result = mysqli_query($koneksi, $query);
-
-
     $priority = isset($_GET['priority']) ? mysqli_real_escape_string($koneksi, $_GET['priority']) : "";
     $status = isset($_GET['status']) ? mysqli_real_escape_string($koneksi, $_GET['status']) : "";
-
-    // Query dasar
-    $query = "SELECT * FROM task WHERE 1";
 
     // Tambahkan filter Prioritas (jika ada)
     if (!empty($priority)) {
@@ -147,7 +121,7 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
         }
 
         .table-container {
-            max-height: 330px; 
+            max-height: 290px; 
             overflow-y: auto;
             padding: 5px;
         }
@@ -157,6 +131,7 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
             overflow: hidden;
             max-width: 350px;
             transition: flex-basis 0.3s ease-in-out;
+            max-height: 436px;
         }
 
         .task-detail {
@@ -164,6 +139,7 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
             overflow: hidden;
             max-width: 350px;
             transition: flex-basis 0.3s ease-in-out;
+            max-height: 436px;
         }
 
         .task-edit {
@@ -171,6 +147,7 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
             overflow: hidden;
             max-width: 350px;
             transition: flex-basis 0.3s ease-in-out;
+            max-height: 436px;
         }
 
         #showFormBtn i {
@@ -191,7 +168,6 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
                 <span class="navbar-toggler-icon"></span>
                 </button>
                 </div>
-            </div>
         </nav>
         <div class="container-fluid p-3 px-5 d-flex align-items-center gap-3">
         <div class="input-group rounded-pill border overflow-hidden" style="max-width: 300px;">
@@ -322,7 +298,8 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
             <div class="col-md-6">
                 <label class="form-label">Tenggat Waktu</label>
                 <input type="date" id="editDueDate" name="due_date" class="form-control" 
-       value="<?php echo isset($row['due_date']) ? $row['due_date'] : ''; ?>" required>
+                    value="<?php echo isset($row['due_date']) ? $row['due_date'] : ''; ?>" 
+                    min="<?php echo date('Y-m-d'); ?>" required>
             </div>
         </div>
 
@@ -345,16 +322,23 @@ $result = mysqli_query($koneksi, "SELECT * FROM task ORDER BY status ASC, priori
                     <hr>
 
                     <div>
-                        <p id="detailDesc" class="text-base"></p>
+                    <p id="detailDesc" class="text-base" style="height: 170px; overflow-y: auto;"></p>
 
-                        <p class="text-gray-500 mt-3">Prioritas:</p>
-                        <p id="detailPriority" class="font-semibold"></p>
+                        <div class="d-flex">
+                        <p class="">Prioritas:</p>
+                        <p id="detailPriority" class="font-semibold" style="padding-left: 3px;"></p>
+                        </div>
 
-                        <p class="text-gray-500 mt-3">Tenggat Waktu:</p>
-                        <p id="detailDueDate" class="text-base"></p>
+                        
+                        <div class="d-flex">
+                        <p class="">Tenggat Waktu:</p>
+                        <p id="detailDueDate" class="text-base" style="padding-left: 3px;"></p>
+                        </div>
 
-                        <p class="text-gray-500 mt-3">Status:</p>
-                        <p id="detailStatus" class="text-base"></p>
+                        <div class="d-flex">
+                            <p class="">Status: </p>
+                            <p id="detailStatus" class="text-base" style="padding-left: 3px;"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -485,57 +469,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.querySelectorAll(".showEditBtn").forEach(button => {
     button.addEventListener("click", function () {
-        let taskId = this.getAttribute("data-id"); // Ambil ID task
-        let row = document.getElementById("task-" + taskId); // Ambil baris berdasarkan ID
-        
-        // Ambil data dari kolom tabel
-        let task = row.cells[1].innerText;
-        let priority = row.cells[2].innerText;
-        let dueDate = row.cells[3].innerText.trim(); // Pastikan tidak ada spasi ekstra
-        let status = row.cells[4].innerHTML;
-        let description = row.cells[5].innerText; // Ambil deskripsi dari kolom tersembunyi (index ke-5)
+        let taskId = this.getAttribute("data-id"); // Ambil ID dari tombol
+        let taskRow = document.getElementById("task-" + taskId); // Cari row berdasarkan ID
 
-        // Masukkan data ke dalam input form
-        document.getElementById("editTaskId").value = taskId;
-        document.getElementById("editTaskName").value = task;
-        document.getElementById("editDesc").value = description;
-        document.getElementById("editStatus").innerHTML = status;
-        document.getElementById("editPriority").value = convertPriority(priority);
+        if (taskRow) {
+            document.getElementById("editTaskId").value = taskId;
+            document.getElementById("editTaskName").value = taskRow.getAttribute("data-task");
+            document.getElementById("editDesc").value = taskRow.querySelector(".hidden-desc").textContent;
+            document.getElementById("editPriority").value = taskRow.getAttribute("data-priority");
+            document.getElementById("editDueDate").value = taskRow.children[3].textContent.trim(); // Ambil dari kolom due_date
 
-        let formattedDate = formatDate(dueDate);
-        let dateInput = document.getElementById("editDueDate");
-
-        if (formattedDate) {
-            dateInput.value = formattedDate; // Pastikan nilai diisi ke dalam input
-        } else {
-            dateInput.value = ""; // Jika ada kesalahan, kosongkan field
+            // Ambil status dari innerHTML
+            let statusText = taskRow.children[4].innerHTML.trim(); // Ambil dari kolom status (td ke-5)
+            document.getElementById("editStatus").innerHTML = statusText;
         }
-
-        console.log("Tanggal sebelum format: ", dueDate);
-        console.log("Tanggal setelah format: ", formattedDate);
 
         // Tampilkan form edit
         document.getElementById("taskEditForm").style.flexBasis = "350px";
         toggleColumns(true);
     });
 });
-
-// Fungsi untuk mengonversi format tanggal (DD-MM-YYYY → YYYY-MM-DD)
-function formatDate(dateText) {
-    if (!dateText) return ""; // Jika kosong, langsung return
-
-    let parts = dateText.includes("/") ? dateText.split("/") : dateText.split("-");
-
-    if (parts.length === 3) {
-        let day = parts[0].padStart(2, '0');   // Tambahkan nol di depan jika perlu
-        let month = parts[1].padStart(2, '0'); // Pastikan bulan juga 2 digit
-        let year = parts[2];
-
-        let finalDate = `${year}-${month}-${day}`;
-        return finalDate;
-    }
-    return "";
-}
 
 
 document.getElementById("closeEditBtn").addEventListener("click", function () {
